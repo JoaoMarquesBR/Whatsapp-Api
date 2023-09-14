@@ -63,6 +63,33 @@ exports.Image = async (req, res) => {
     return res.status(201).json({ error: false, data: data })
 }
 
+exports.ImageWait = async (req, res) => {
+    const ids = req.body.id;
+    const stringIds = ids.split(',').map(id => id.trim());
+    const minTime = req.body.minTime;
+    const maxTime = req.body.maxTime;
+    
+    if (!Array.isArray(stringIds) || stringIds.length === 0) {
+        return res.status(400).json({ error: true, message: 'Invalid or empty list of IDs' });
+    }
+
+    let data;
+
+    for(let i = 0; i< stringIds.length;i++){
+        const delay = Math.floor(Math.random() * (maxTime * 1000 - minTime * 1000 + 1) + minTime * 1000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+            data = await WhatsAppInstances[req.query.key].sendMediaFile(
+            stringIds.at(i),
+            req.file,
+            'image',
+            req.body?.caption
+        )
+    }
+ 
+    return res.status(201).json({ error: false, data: data })
+}
+
+
 exports.Video = async (req, res) => {
     const data = await WhatsAppInstances[req.query.key].sendMediaFile(
         req.body.id,
