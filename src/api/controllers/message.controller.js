@@ -29,7 +29,7 @@ exports.TextList = async (req, res) => {
 }
 
 exports.TextListWait = async (req, res) => {
-    const ids = req.body.ids; 
+    const ids = req.body.ids;
     const stringIds = ids.map(id => id.toString());
     const message = req.body.message;
     const minTime = req.body.minTime;
@@ -39,16 +39,19 @@ exports.TextListWait = async (req, res) => {
         return res.status(400).json({ error: true, message: 'Invalid or empty list of IDs' });
     }
 
-    const data = await Promise.all(stringIds.map(async (id) => {
-        const delay = Math.floor(Math.random() * (maxTime- minTime+1)+minTime)
-        await new Promise(resolve=> setTimeout(resolve,delay))
-        return WhatsAppInstances[req.query.key].sendTextMessage(
-            id, message
-        )
-    }));
+    const data = [];
+
+    for (const id of stringIds) {
+        const delay = Math.floor(Math.random() * (maxTime * 1000 - minTime * 1000 + 1) + minTime * 1000);
+        console.log(`Delay for id ${id}: ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(`Message sent to id ${id}`);
+        const result = await WhatsAppInstances[req.query.key].sendTextMessage(id, message);
+        data.push(result);
+    }
 
     return res.status(201).json({ error: false, data: data });
-}
+};
 
 exports.Image = async (req, res) => {
     const data = await WhatsAppInstances[req.query.key].sendMediaFile(
