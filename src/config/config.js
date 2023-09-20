@@ -44,7 +44,20 @@ const MARK_MESSAGES_READ = !!(
     process.env.MARK_MESSAGES_READ && process.env.MARK_MESSAGES_READ === 'true'
 )
 
+const sqlConfig = {
+    user: 'sa',
+    password: 'MyPassword21$',
+    server: '10.0.0.54',
+    database: 'WhatsappApiNodeJs',
+    port:3310,
+    options: {
+      encrypt: false, // Use encryption if required
+    },
+  };
+
+
 module.exports = {
+    sqlConfig: sqlConfig,
     port: PORT,
     token: TOKEN,
     restoreSessionsOnStartup: RESTORE_SESSIONS_ON_START_UP,

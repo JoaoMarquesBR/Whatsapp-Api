@@ -8,6 +8,7 @@ const router = express.Router()
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage, inMemory: true }).single('file')
 
+router.route('/FilterPhones').post(keyVerify, loginVerify, controller.FilterPhones)
 router.route('/text').post(keyVerify, loginVerify, controller.Text)
 router.route('/textList').post(keyVerify, loginVerify, controller.TextList)
 router.route('/textListWait').post(keyVerify, loginVerify, controller.TextListWait)

@@ -1,5 +1,79 @@
 const { resolveInclude } = require("ejs");
 const { del } = require("express/lib/application");
+const sql = require('mssql');
+const config = require('../../config/config');
+
+exports.FilterPhones = async (req, res) => {
+    const pool = new sql.ConnectionPool(config.sqlConfig);
+
+    try {
+        await pool.connect();
+        console.log("Successful connection");
+
+        const userIdResult = await pool.request().query(`SELECT userId FROM users WHERE username = '${req.body.username}'`);
+
+        if (userIdResult.recordset.length > 0) {
+            const userId = userIdResult.recordset[0].userId;
+            const result = await pool.request().query(`SELECT phoneNumber FROM sentPhones WHERE userId = ${userId}`);
+            const phoneNumbersAlreadySent = [];
+            for (const row of result.recordset) {
+                phoneNumbersAlreadySent.push(row.phoneNumber);
+            }
+            
+            let phoneNumbersStr = req.body.id.replace(/\+/g, '').replace(/\ /g, '').replace(/[\s\-()]/g, '');
+            let prohibitedNumbersStr = req.body.prohibitedNumbers.replace(/\+/g, '').replace(/\ /g, '').replace(/[\s\-()]/g, '');
+
+            const listProhibited = uniqueList(stringToList(prohibitedNumbersStr))
+
+            const listNumbers = uniqueList(stringToList(phoneNumbersStr,phoneNumbersAlreadySent))
+
+            let finalList  = removeFromList(listNumbers,phoneNumbersAlreadySent)
+            finalList  = removeFromList(listNumbers,listProhibited)
+
+            return res.status(201).json({ error: false, data: finalList });
+        } else {
+            console.log('User not found');
+            return res.status(404).json({ error: true, message: 'User not found' });
+        }
+    } catch (err) {
+        // Handle connection or query errors
+        console.error('Error:', err);
+        return res.status(500).json({ error: true, message: 'Internal server error' });
+    } finally {
+        // Make sure to release the connection pool
+        pool.close();
+    }
+};
+
+function removeFromList(originalList,removeValues){
+    return filteredFromRemovelList = originalList.filter(number => !removeValues.includes(number));
+}
+
+function uniqueList(list){
+    return [...new Set(list)];
+}
+
+function stringToList(inputStr, exclusionList) {
+    const phoneNumbersArray = inputStr.split(','); 
+    const cleanedNumbers = phoneNumbersArray
+        .map(phoneNumber => phoneNumber.replace(/\D/g, '').trim()) 
+        .filter(cleanedPhoneNumber => {
+            return cleanedPhoneNumber.length > 6 && !exclusionList.includes(cleanedPhoneNumber);
+        });
+
+    return cleanedNumbers;
+}
+
+function stringToList(inputStr) {
+    const phoneNumbersArray = inputStr.split(','); 
+    const cleanedNumbers = phoneNumbersArray
+        .map(phoneNumber => phoneNumber.replace(/\D/g, '').trim()) 
+        .filter(cleanedPhoneNumber => {
+            return cleanedPhoneNumber.length > 6;
+        });
+
+    return cleanedNumbers;
+}
 
 exports.Text = async (req, res) => {
     const data = await WhatsAppInstances[req.query.key].sendTextMessage(
@@ -30,10 +104,17 @@ exports.TextList = async (req, res) => {
 
 exports.TextListWait = async (req, res) => {
     const ids = req.body.ids;
+
+    console.log(ids)
+
     const stringIds = ids.map(id => id.toString());
     const message = req.body.message;
     const minTime = req.body.minTime;
     const maxTime = req.body.maxTime;
+
+    // for(let i=0;i<stringIds.length;i++){
+    // }
+    // console.log(stringIds)
 
     if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: true, message: 'Invalid or empty list of IDs' });
@@ -46,8 +127,8 @@ exports.TextListWait = async (req, res) => {
         console.log(`Delay for id ${id}: ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
         console.log(`Message sent to id ${id}`);
-        const result = await WhatsAppInstances[req.query.key].sendTextMessage(id, message);
-        data.push(result);
+        // const result = await WhatsAppInstances[req.query.key].sendTextMessage(id, message);
+        data.push("result");
     }
 
     return res.status(201).json({ error: false, data: data });
