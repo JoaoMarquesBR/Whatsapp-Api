@@ -2,13 +2,14 @@ const { resolveInclude } = require("ejs");
 const { del } = require("express/lib/application");
 const sql = require('mssql');
 const config = require('../../config/config');
+const sqlRepo = require('../repo/sqlRepo')
 
 exports.FilterPhones = async (req, res) => {
     const pool = new sql.ConnectionPool(config.sqlConfig);
 
     try {
         await pool.connect();
-        console.log("Successful connection");
+        console.log("Successful DB connection");
 
         const userIdResult = await pool.request().query(`SELECT userId FROM users WHERE username = '${req.body.username}'`);
 
@@ -27,8 +28,8 @@ exports.FilterPhones = async (req, res) => {
 
             const listNumbers = uniqueList(stringToList(phoneNumbersStr,phoneNumbersAlreadySent))
 
-            let finalList  = removeFromList(listNumbers,phoneNumbersAlreadySent)
-            finalList  = removeFromList(listNumbers,listProhibited)
+               let finalList  = removeFromList(listNumbers,phoneNumbersAlreadySent)
+            finalList  = removeFromList(finalList,listProhibited)
 
             return res.status(201).json({ error: false, data: finalList });
         } else {
@@ -94,6 +95,7 @@ exports.TextList = async (req, res) => {
     }
 
     const data = await Promise.all(stringIds.map(async (id) => {
+        sqlRepo.insertData(`INSERT INTO sentPhones VALUES (4, '${id}', GETDATE())`)
         return WhatsAppInstances[req.query.key].sendTextMessage(
             id, message
         )
@@ -105,16 +107,10 @@ exports.TextList = async (req, res) => {
 exports.TextListWait = async (req, res) => {
     const ids = req.body.ids;
 
-    console.log(ids)
-
     const stringIds = ids.map(id => id.toString());
     const message = req.body.message;
     const minTime = req.body.minTime;
     const maxTime = req.body.maxTime;
-
-    // for(let i=0;i<stringIds.length;i++){
-    // }
-    // console.log(stringIds)
 
     if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: true, message: 'Invalid or empty list of IDs' });
@@ -122,16 +118,19 @@ exports.TextListWait = async (req, res) => {
 
     const data = [];
 
-    for (const id of stringIds) {
+    uniqueStringsId = uniqueList(stringIds)
+
+    for (const id of uniqueStringsId) {
         const delay = Math.floor(Math.random() * (maxTime * 1000 - minTime * 1000 + 1) + minTime * 1000);
         console.log(`Delay for id ${id}: ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
         console.log(`Message sent to id ${id}`);
-        // const result = await WhatsAppInstances[req.query.key].sendTextMessage(id, message);
-        data.push("result");
+        sqlRepo.insertData(`INSERT INTO sentPhones VALUES (4, '${id}', GETDATE())`)
+        const result = await WhatsAppInstances[req.query.key].sendTextMessage(id, message);
+        data.push(result);
     }
 
-    return res.status(201).json({ error: false, data: data });
+    return res.status(201).json({ error: false, data: result });
 };
 
 exports.Image = async (req, res) => {
