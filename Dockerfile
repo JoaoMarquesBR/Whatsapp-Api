@@ -17,7 +17,7 @@ WORKDIR ${_WORKDIR}
 ADD . ${_WORKDIR}
 
 # Install your project's dependencies using npm
-RUN npm install
+RUN npm i
 
 # Switch back to the node user
 USER node

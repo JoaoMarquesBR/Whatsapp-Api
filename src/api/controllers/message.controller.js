@@ -28,8 +28,9 @@ exports.FilterPhones = async (req, res) => {
 
             const listNumbers = uniqueList(stringToList(phoneNumbersStr,phoneNumbersAlreadySent))
 
-               let finalList  = removeFromList(listNumbers,phoneNumbersAlreadySent)
+            let finalList  = removeFromList(listNumbers,phoneNumbersAlreadySent)
             finalList  = removeFromList(finalList,listProhibited)
+            finalList = finalList.map(item => parseInt(item));
 
             return res.status(201).json({ error: false, data: finalList });
         } else {
@@ -130,7 +131,7 @@ exports.TextListWait = async (req, res) => {
         data.push(result);
     }
 
-    return res.status(201).json({ error: false, data: result });
+    return res.status(201).json({ error: false, data: "ok" });
 };
 
 exports.Image = async (req, res) => {
